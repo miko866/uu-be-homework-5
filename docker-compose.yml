@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:  
+  #######################################################
+  #  PostgreSQL
+  #
+  #######################################################
+  postgres_db:
+    image: postgres:15.1-alpine
+    container_name: postgres_db
+    hostname: postgres_db
+    restart: always
+    environment:
+      - POSTGRES_DB=${DB_POSTGRES_NAME}
+      - POSTGRES_USER=${DB_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${DB_POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres:/docker-entrypoint-initdb.d
+      - postgres_volume:/var/lib/postgresql/data
+    networks:
+      - custom_network
+
+  #######################################################
+  #  PgAdmin
+  #
+  #  PostgreSQL UI Manager
+  #######################################################
+  pgadmin:
+    image: dpage/pgadmin4:6.17
+    container_name: pgadmin
+    hostname: pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+      - PGADMIN_CONFIG_CONSOLE_LOG_LEVEL=10
+      - PGADMIN_LISTEN_PORT=5050
+    ports:
+      - 5050:5050
+    volumes:
+      - pgadmin_volume:/var/lib/pgadmin
+      - ./pgAdmin/servers.json:/pgadmin4/servers.json
+    networks:
+      - custom_network
+    depends_on:
+      - postgres_db
+
+  #######################################################
+  #  MongoDb
+  #
+  #######################################################
+  mongo_db:
+    image: mongo:6.0.2
+    container_name: mongo_db
+    hostname: mongo_db
+    restart: always 
+    environment: 
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
+    ports:
+      - '27017:27017'
+    volumes: 
+      - mongo_volume:/data/db
+      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - custom_network
+
+#######################################################
+#  Volumes
+#######################################################
+volumes:
+  postgres_volume:
+  pgadmin_volume:
+  mongo_volume:
+
+#######################################################
+#  Networks
+#######################################################
+networks:
+  custom_network:
+    driver: bridge
